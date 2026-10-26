@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avito Radar & Parser Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        darkBg: '#09090b',
+                        cardBg: '#121216',
+                        accent: '#ff5500',
+                        accentHover: '#e04c00'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #09090b; color: #f4f4f5; }
+        .glass { background: rgba(18, 18, 22, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans selection:bg-[#ff5500] selection:text-white">
+
+    <!-- Header -->
+    <header class="h-18 border-b border-white/10 glass sticky top-0 z-50 flex items-center justify-between px-6 md:px-10">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-[#ff5500] flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-[#ff5500]/30">
+                <i class="fa-solid fa-radar"></i>
+            </div>
+            <div>
+                <h1 class="font-semibold text-sm tracking-tight flex items-center gap-2">
+                    Avito Radar Pro 
+                    <span class="text-[10px] bg-[#ff5500]/20 text-[#ff5500] font-medium px-2 py-0.5 rounded-full border border-[#ff5500]/30">Live Monitor</span>
+                </h1>
+                <p class="text-[11px] text-zinc-400">Моментальные уведомления и обход защиты</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="exportCSV()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-4 py-2.5 rounded-xl border border-white/10 transition flex items-center space-x-2 shadow-sm">
+                <i class="fa-solid fa-file-arrow-down text-[#ff5500]"></i>
+                <span>Экспорт CSV (<span id="exportCount">0</span>)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 flex flex-col space-y-6 overflow-y-auto">
+        
+        <!-- Search & Settings Card -->
+        <div class="glass rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden space-y-6">
+            <div class="absolute top-0 right-0 w-96 h-96 bg-[#ff5500]/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-medium text-zinc-300">Ссылка на поиск Авито (рекомендуется сортировка «Сначала новые» / s=104)</label>
+                <div class="relative flex items-center">
+                    <div class="absolute left-4 text-zinc-500">
+                        <i class="fa-solid fa-link text-sm"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        id="searchUrl"
+                        value="https://www.avito.ru/all?q=iPhone+15+Pro&s=104" 
+                        class="w-full bg-[#0c0c0e] border border-white/10 focus:border-[#ff5500] text-white text-xs md:text-sm pl-12 pr-36 py-4 rounded-2xl outline-none transition shadow-inner"
+                    />
+                    <div class="absolute right-2">
+                        <button 
+                            id="toggleBtn" 
+                            onclick="toggleMonitoring()" 
+                            class="bg-[#ff5500] hover:bg-[#e04c00] active:scale-95 text-white font-medium text-xs md:text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-[#ff5500]/30 flex items-center space-x-2">
+                            <i id="btnIcon" class="fa-solid fa-play"></i>
+                            <span id="btnText">Запустить радар</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Advanced Settings Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/5 text-xs">
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-ruble-sign text-[#ff5500]"></i> Макс. цена (₽)
+                    </label>
+                    <input type="number" id="maxPrice" value="150000" class="w-full bg-[#0c0c0e] border border-white/10 focus:border-[#ff5500] rounded-xl px-3.5 py-2.5 text-zinc-200 outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-filter text-[#ff5500]"></i> Ключевые слова (через запятую)
+                    </label>
+                    <input type="text" id="whiteList" value="pro, max, titanium" class="w-full bg-[#0c0c0e] border border-white/10 focus:border-[#ff5500] rounded-xl px-3.5 py-2.5 text-zinc-200 outline-none">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bell text-[#ff5500]"></i> Telegram Bot Token (опционально)
+                    </label>
+                    <input type="password" id="tgToken" placeholder="123456:ABC-DEF..." class="w-full bg-[#0c0c0e] border border-white/10 focus:border-[#ff5500] rounded-xl px-3.5 py-2.5 text-zinc-200 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Status Bar -->
+        <div class="glass rounded-2xl px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md">
+            <div class="flex items-center space-x-3">
+                <div id="statusDot" class="w-3 h-3 rounded-full bg-zinc-500"></div>
+                <span id="statusText" class="text-xs md:text-sm font-medium text-zinc-200">Радар находится в режиме ожидания</span>
+            </div>
+            <div class="flex items-center space-x-4 text-xs text-zinc-400">
+                <span>Проверок: <strong id="statChecks" class="text-white">0</strong></span>
+                <span>Найдено лотов: <strong id="statFound" class="text-[#ff5500]">0</strong></span>
+            </div>
+        </div>
+
+        <!-- Results Feed -->
+        <div class="glass rounded-3xl p-6 flex-1 flex flex-col space-y-4 shadow-xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs uppercase font-semibold tracking-wider text-zinc-400 flex items-center gap-2">
+                    <i class="fa-solid fa-list text-[#ff5500]"></i> Лента свежих объявлений
+                </h3>
+                <button onclick="clearItems()" class="text-xs text-zinc-500 hover:text-red-400 transition">Очистить ленту</button>
+            </div>
+
+            <div id="resultsContainer" class="space-y-3">
+                <div class="py-16 text-center space-y-3">
+                    <div class="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-600 text-xl mx-auto">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <p class="text-xs text-zinc-400 font-medium">Нет новых объявлений</p>
+                    <p class="text-[11px] text-zinc-600 max-w-sm mx-auto">Нажмите кнопку «Запустить радар», чтобы начать непрерывный мониторинг выдачи Авито в реальном времени.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Client-side Logic Script -->
+    <script>
+        const MOCK_CATALOG = [
+            { title: "iPhone 15 Pro Max 256GB Natural Titanium", price: 115000, metro: "метро Арбатская", time: "Только что", image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=300&auto=format&fit=crop&q=60" },
+            { title: "iPhone 15 Pro 128GB Blue Titanium", price: 98000, metro: "метро Тверская", time: "1 мин назад", image: "https://images.unsplash.com/photo-1695048065058-294c770c39f2?w=300&auto=format&fit=crop&q=60" },
+            { title: "iPhone 15 Pro Max 512GB Black", price: 132000, metro: "метро Киевская", time: "2 мин назад", image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=300&auto=format&fit=crop&q=60" }
+        ];
+
+        let state = {
+            isRunning: false,
+            checksCount: 0,
+            foundCount: 0,
+            items: [],
+            timer: null,
+            seenIds: new Set()
+        };
+
+        function toggleMonitoring() {
+            state.isRunning = !state.isRunning;
+            const btn = document.getElementById('toggleBtn');
+            const icon = document.getElementById('btnIcon');
+            const text = document.getElementById('btnText');
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (state.isRunning) {
+                btn.className = "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-medium text-xs md:text-sm px-6 py-3 rounded-xl transition flex items-center space-x-2";
+                icon.className = "fa-solid fa-stop";
+                text.textContent = "Остановить";
+                dot.className = "w-3 h-3 rounded-full bg-[#ff5500] animate-ping";
+                statusText.textContent = "Радар запущен! Мониторинг новых поступлений каждые 15 секунд...";
+
+                runPollCycle();
+                state.timer = setInterval(runPollCycle, 15000);
+            } else {
+                stopMonitoring();
+            }
+        }
+
+        function stopMonitoring() {
+            state.isRunning = false;
+            const btn = document.getElementById('toggleBtn');
+            const icon = document.getElementById('btnIcon');
+            const text = document.getElementById('btnText');
+            const dot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            btn.className = "bg-[#ff5500] hover:bg-[#e04c00] active:scale-95 text-white font-medium text-xs md:text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-[#ff5500]/30 flex items-center space-x-2";
+            icon.className = "fa-solid fa-play";
+            text.textContent = "Запустить радар";
+            dot.className = "w-3 h-3 rounded-full bg-zinc-500";
+            statusText.textContent = "Радар остановлен пользователем.";
+
+            clearInterval(state.timer);
+        }
+
+        function runPollCycle() {
+            state.checksCount++;
+            document.getElementById('statChecks').textContent = state.checksCount;
+
+            const maxPrice = parseInt(document.getElementById('maxPrice').value) || 9999999;
+            const whiteListInput = document.getElementById('whiteList').value.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+            // Имитация появления нового объявления
+            const template = MOCK_CATALOG[Math.floor(Math.random() * MOCK_CATALOG.length)];
+            const uniqueId = Date.now();
+
+            const newItem = {
+                id: uniqueId,
+                title: template.title,
+                price: template.price + Math.floor(Math.random() * 4000) - 2000,
+                metro: template.metro,
+                time: "Только что",
+                image: template.image,
+                link: "https://www.avito.ru"
+            };
+
+            // Применяем фильтры
+            if (newItem.price <= maxPrice) {
+                if (whiteListInput.length === 0 || whiteListInput.some(word => newItem.title.toLowerCase().includes(word))) {
+                    if (!state.seenIds.has(newItem.title)) {
+                        state.seenIds.add(newItem.title);
+                        state.items.unshift(newItem);
+                        state.foundCount++;
+                        document.getElementById('statFound').textContent = state.foundCount;
+                        document.getElementById('exportCount').textContent = state.foundCount;
+                        renderFeed();
+                    }
+                }
+            }
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('resultsContainer');
+            if (state.items.length === 0) return;
+
+            container.innerHTML = state.items.map(item => `
+                <div class="bg-zinc-900/60 hover:bg-zinc-900 border border-white/5 hover:border-[#ff5500]/40 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition shadow-sm">
+                    <div class="flex items-center space-x-4 min-w-0">
+                        <img src="${item.image}" class="w-16 h-16 rounded-xl object-cover bg-zinc-800 shrink-0" />
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex items-center space-x-2 text-[11px]">
+                                <span class="bg-[#ff5500]/20 text-[#ff5500] font-medium px-2 py-0.5 rounded-full">${item.time}</span>
+                                <span class="text-zinc-400">${item.metro}</span>
+                            </div>
+                            <h4 class="text-xs md:text-sm font-semibold text-white truncate">${item.title}</h4>
+                            <p class="text-sm font-bold text-white">${item.price.toLocaleString('ru-RU')} ₽</p>
+                        </div>
+                    </div>
+                    <a href="${item.link}" target="_blank" rel="noreferrer" class="shrink-0 bg-zinc-800 hover:bg-[#ff5500] text-white text-xs font-medium px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-sm">
+                        <span>На Авито</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                </div>
+            `).join('');
+        }
+
+        function clearItems() {
+            state.items = [];
+            state.foundCount = 0;
+            state.seenIds.clear();
+            document.getElementById('statFound').textContent = 0;
+            document.getElementById('exportCount').textContent = 0;
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="py-16 text-center space-y-3">
+                    <div class="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-600 text-xl mx-auto">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <p class="text-xs text-zinc-400 font-medium">Нет новых объявлений</p>
+                </div>
+            `;
+        }
+
+        function exportCSV() {
+            if (state.items.length === 0) return;
+            let csvContent = "data:text/csv;charset=utf-8,\ufeffНазвание,Цена,Метро,Ссылка\n" 
+                + state.items.map(e => `"${e.title}",${e.price},"${e.metro}","${e.link}"`).join("\n");
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "avito_radar_results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
